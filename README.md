@@ -1,1 +1,0 @@
-# PropFirm-Risk-Calculator
