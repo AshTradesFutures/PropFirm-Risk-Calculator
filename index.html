@@ -1,0 +1,482 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Prop Firm Position Size Calculator</title>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;600&family=IBM+Plex+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg: #ffffff;
+    --border: #e0e0e0;
+    --black: #111111;
+    --gray: #555555;
+    --lgray: #999999;
+    --green: #1a7a3e;
+    --red: #c0392b;
+    --orange: #b85c00;
+    --panel: #f8f8f8;
+    --font-body: 'IBM Plex Sans', sans-serif;
+    --font-mono: 'IBM Plex Mono', monospace;
+  }
+
+  html, body {
+    min-height: 100%;
+    background: var(--bg);
+    font-family: var(--font-body);
+    color: var(--black);
+  }
+
+  header {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    padding: 24px 40px 20px;
+    border-bottom: 1px solid var(--border);
+  }
+  header h1 {
+    font-size: 1.5rem;
+    font-weight: 600;
+    letter-spacing: -0.02em;
+  }
+  header span {
+    font-size: 0.85rem;
+    color: var(--lgray);
+    font-family: var(--font-mono);
+    letter-spacing: 0.05em;
+  }
+
+  .app {
+    display: grid;
+    grid-template-columns: 320px 1fr;
+    gap: 0;
+    min-height: calc(100vh - 69px - 44px);
+  }
+
+  .left {
+    padding: 28px 32px;
+    border-right: 1px solid var(--border);
+    background: var(--panel);
+  }
+
+  .section-label {
+    font-size: 0.7rem;
+    font-weight: 600;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--lgray);
+    margin-bottom: 12px;
+    margin-top: 24px;
+    padding-bottom: 6px;
+    border-bottom: 1px solid var(--border);
+  }
+  .section-label:first-child { margin-top: 0; }
+
+  .field { margin-bottom: 12px; }
+  .field label {
+    display: block;
+    font-size: 0.8rem;
+    color: var(--gray);
+    margin-bottom: 4px;
+  }
+  .field input {
+    width: 100%;
+    padding: 8px 10px;
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    font-size: 0.9rem;
+    font-family: var(--font-mono);
+    background: #fff;
+    color: var(--black);
+    outline: none;
+    transition: border-color 0.15s;
+  }
+  .field input:focus { border-color: #888; }
+
+  .slider-wrap { display: flex; flex-direction: column; gap: 6px; }
+  .slider-row  { display: flex; align-items: center; gap: 10px; }
+
+  input[type="range"] {
+    -webkit-appearance: none;
+    appearance: none;
+    flex: 1;
+    height: 4px;
+    border-radius: 2px;
+    background: var(--border);
+    outline: none;
+    cursor: pointer;
+  }
+  input[type="range"]::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 16px; height: 16px;
+    border-radius: 50%;
+    background: var(--black);
+    cursor: pointer;
+    border: 2px solid #fff;
+    box-shadow: 0 0 0 1px var(--black);
+    transition: transform 0.1s;
+  }
+  input[type="range"]::-webkit-slider-thumb:hover { transform: scale(1.2); }
+  input[type="range"]::-moz-range-thumb {
+    width: 16px; height: 16px;
+    border-radius: 50%;
+    background: var(--black);
+    cursor: pointer;
+    border: 2px solid #fff;
+    box-shadow: 0 0 0 1px var(--black);
+  }
+
+  .slider-val {
+    font-family: var(--font-mono);
+    font-size: 1rem;
+    font-weight: 600;
+    min-width: 28px;
+    text-align: right;
+    color: var(--black);
+  }
+  .slider-hint {
+    font-size: 0.72rem;
+    color: var(--lgray);
+    font-family: var(--font-mono);
+  }
+
+  .calc-btn {
+    width: 100%;
+    margin-top: 24px;
+    padding: 11px;
+    background: var(--black);
+    color: #fff;
+    border: none;
+    border-radius: 4px;
+    font-size: 0.9rem;
+    font-family: var(--font-body);
+    font-weight: 600;
+    cursor: pointer;
+    letter-spacing: 0.03em;
+    transition: background 0.15s;
+  }
+  .calc-btn:hover { background: #333; }
+
+  .right { padding: 28px 40px; }
+
+  .summary {
+    display: flex;
+    gap: 48px;
+    align-items: flex-end;
+    padding-bottom: 20px;
+    border-bottom: 1px solid var(--border);
+    margin-bottom: 4px;
+    flex-wrap: wrap;
+  }
+  .summary-item .big {
+    font-size: 2.4rem;
+    font-weight: 600;
+    font-family: var(--font-mono);
+    line-height: 1;
+    letter-spacing: -0.02em;
+  }
+  .summary-item .big.green  { color: var(--green); }
+  .summary-item .big.red    { color: var(--red); }
+  .summary-item .big.black  { color: var(--black); }
+  .summary-item .big.orange { color: var(--orange); }
+  .summary-item .sub {
+    font-size: 0.78rem;
+    color: var(--lgray);
+    margin-top: 4px;
+  }
+
+  .result-section { margin-top: 22px; }
+  .result-section h3 {
+    font-size: 0.7rem;
+    font-weight: 600;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--lgray);
+    padding-bottom: 6px;
+    border-bottom: 1px solid var(--border);
+    margin-bottom: 10px;
+  }
+
+  .result-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 5px 0;
+    font-size: 0.9rem;
+  }
+  .result-row .rlabel { color: var(--gray); }
+  .result-row .rvalue {
+    font-family: var(--font-mono);
+    font-weight: 600;
+    font-size: 0.9rem;
+  }
+  .result-row .rvalue.green  { color: var(--green); }
+  .result-row .rvalue.red    { color: var(--red); }
+  .result-row .rvalue.black  { color: var(--black); }
+  .result-row .rvalue.orange { color: var(--orange); }
+
+  /* Drawdown Ladder */
+  .ladder {
+    margin-top: 10px;
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(110px, 1fr));
+    gap: 8px;
+  }
+  .ladder-cell {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    padding: 8px 10px;
+    font-family: var(--font-mono);
+    font-size: 0.78rem;
+  }
+  .ladder-cell .lc-num {
+    color: var(--lgray);
+    font-size: 0.68rem;
+    margin-bottom: 2px;
+  }
+  .ladder-cell .lc-val {
+    font-weight: 600;
+    color: var(--red);
+  }
+  .ladder-cell.danger {
+    border-color: #e0b0b0;
+    background: #fff5f5;
+  }
+  .ladder-cell.danger .lc-val { color: var(--red); }
+  .ladder-cell.blown {
+    border-color: var(--red);
+    background: var(--red);
+  }
+  .ladder-cell.blown .lc-num { color: #ffaaaa; }
+  .ladder-cell.blown .lc-val { color: #fff; }
+
+  footer {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 10px 40px;
+    border-top: 1px solid var(--border);
+    background: var(--panel);
+    font-size: 0.75rem;
+    color: var(--lgray);
+  }
+  footer .copyright {
+    font-family: var(--font-mono);
+    font-weight: 600;
+    color: var(--gray);
+    letter-spacing: 0.03em;
+  }
+
+  @media (max-width: 700px) {
+    .app { grid-template-columns: 1fr; }
+    .left { border-right: none; border-bottom: 1px solid var(--border); }
+    header { padding: 16px 20px; }
+    .right { padding: 20px; }
+    footer { padding: 10px 20px; flex-direction: column; gap: 4px; text-align: center; }
+    .summary { gap: 24px; }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>Prop Firm Position Size Calculator</h1>
+  <span>drawdown &nbsp;·&nbsp; losses &nbsp;·&nbsp; risk/trade</span>
+</header>
+
+<div class="app">
+
+  <!-- LEFT: INPUTS -->
+  <div class="left">
+
+    <div class="section-label">Account</div>
+
+    <div class="field">
+      <label>Account Size ($)</label>
+      <input type="number" id="accountSize" value="50000" min="0" step="1000">
+    </div>
+
+    <div class="section-label">Drawdown Limit</div>
+
+    <div class="field">
+      <label>Max Drawdown ($)</label>
+      <input type="number" id="maxDrawdown" value="2000" min="0" step="100">
+    </div>
+
+    <div class="field">
+      <label>Daily Loss Limit ($) <span style="color:var(--lgray);font-size:0.75rem;">(optional)</span></label>
+      <input type="number" id="dailyLimit" value="" min="0" step="100" placeholder="e.g. 1000">
+    </div>
+
+    <div class="section-label">Loss Tolerance</div>
+
+    <div class="field">
+      <label>Max losing trades I'm comfortable with</label>
+      <div class="slider-wrap">
+        <div class="slider-row">
+          <input type="range" id="lossSlider" min="1" max="20" value="8" step="1">
+          <span class="slider-val" id="sliderDisplay">8</span>
+        </div>
+        <div class="slider-hint">drag to set number of acceptable losses</div>
+      </div>
+    </div>
+
+    <button class="calc-btn" onclick="calculate()">Calculate</button>
+
+  </div>
+
+  <!-- RIGHT: RESULTS -->
+  <div class="right">
+
+    <div class="summary">
+      <div class="summary-item">
+        <div class="big red" id="sumRiskPerTrade">$—</div>
+        <div class="sub">risk per trade</div>
+      </div>
+      <div class="summary-item">
+        <div class="big black" id="sumLosses">—</div>
+        <div class="sub">max losses</div>
+      </div>
+      <div class="summary-item">
+        <div class="big orange" id="sumDrawdownPct">—%</div>
+        <div class="sub">drawdown / account</div>
+      </div>
+    </div>
+
+    <!-- Core Breakdown -->
+    <div class="result-section">
+      <h3>Risk Breakdown</h3>
+      <div class="result-row">
+        <span class="rlabel">Max drawdown</span>
+        <span class="rvalue red" id="rDrawdown">—</span>
+      </div>
+      <div class="result-row">
+        <span class="rlabel">Max losing trades</span>
+        <span class="rvalue black" id="rLosses">—</span>
+      </div>
+      <div class="result-row">
+        <span class="rlabel">Risk per trade</span>
+        <span class="rvalue red" id="rRiskTrade">—</span>
+      </div>
+      <div class="result-row">
+        <span class="rlabel">Risk as % of account</span>
+        <span class="rvalue black" id="rRiskPct">—</span>
+      </div>
+    </div>
+
+    <!-- Daily Limit Check -->
+    <div class="result-section">
+      <h3>Daily Limit Check</h3>
+      <div class="result-row">
+        <span class="rlabel">Daily loss limit</span>
+        <span class="rvalue black" id="rDailyLimit">—</span>
+      </div>
+      <div class="result-row">
+        <span class="rlabel">Max losses before daily limit hit</span>
+        <span class="rvalue black" id="rDailyTrades">—</span>
+      </div>
+      <div class="result-row">
+        <span class="rlabel">Risk per trade fits daily limit?</span>
+        <span class="rvalue black" id="rDailyOk">—</span>
+      </div>
+    </div>
+
+    <!-- Drawdown Ladder -->
+    <div class="result-section">
+      <h3>Drawdown Ladder — account balance after each consecutive loss</h3>
+      <div class="ladder" id="ladder"></div>
+    </div>
+
+  </div>
+</div>
+
+<footer>
+  <span>For educational purposes only. Prop firm rules vary — always verify your firm's exact terms.</span>
+  <span class="copyright">© AshTradesFutures</span>
+</footer>
+
+<script>
+  function fmt(n, dec=2) {
+    return '$' + n.toLocaleString('en-US', { minimumFractionDigits: dec, maximumFractionDigits: dec });
+  }
+
+  document.getElementById('lossSlider').addEventListener('input', function() {
+    document.getElementById('sliderDisplay').textContent = this.value;
+    calculate();
+  });
+
+  document.querySelectorAll('input').forEach(el => {
+    if (el.id !== 'lossSlider') el.addEventListener('input', calculate);
+  });
+
+  function set(id, text, cls) {
+    const el = document.getElementById(id);
+    el.textContent = text;
+    if (cls) el.className = 'rvalue ' + cls;
+  }
+
+  function calculate() {
+    const account    = parseFloat(document.getElementById('accountSize').value) || 0;
+    const maxDD      = parseFloat(document.getElementById('maxDrawdown').value) || 0;
+    const maxLosses  = parseInt(document.getElementById('lossSlider').value) || 1;
+    const dailyRaw   = document.getElementById('dailyLimit').value;
+    const dailyLimit = dailyRaw !== '' ? parseFloat(dailyRaw) : null;
+
+    if (maxDD <= 0 || account <= 0) return;
+
+    const riskPerTrade = maxDD / maxLosses;
+    const riskPct      = (riskPerTrade / account) * 100;
+    const ddPct        = (maxDD / account) * 100;
+
+    // Summary
+    document.getElementById('sumRiskPerTrade').textContent = fmt(riskPerTrade);
+    document.getElementById('sumLosses').textContent       = maxLosses + 'x';
+    document.getElementById('sumDrawdownPct').textContent  = ddPct.toFixed(1) + '%';
+
+    // Risk Breakdown
+    set('rDrawdown',  fmt(maxDD),                             'red');
+    set('rLosses',    maxLosses + ' trades',                  'black');
+    set('rRiskTrade', fmt(riskPerTrade),                      'red');
+    set('rRiskPct',   riskPct.toFixed(2) + '% per trade',    riskPct > 2 ? 'orange' : 'black');
+
+    // Daily Limit
+    if (dailyLimit !== null && dailyLimit > 0) {
+      const tradesBeforeLimit = Math.floor(dailyLimit / riskPerTrade);
+      const fits = riskPerTrade <= dailyLimit;
+      set('rDailyLimit',  fmt(dailyLimit),                          'black');
+      set('rDailyTrades', tradesBeforeLimit + ' max',               'black');
+      set('rDailyOk',     fits ? 'Yes ✓' : 'No — reduce risk ✗',  fits ? 'green' : 'red');
+    } else {
+      set('rDailyLimit',  'Not set', 'black');
+      set('rDailyTrades', '—',       'black');
+      set('rDailyOk',     '—',       'black');
+    }
+
+    // Drawdown Ladder
+    const ladder = document.getElementById('ladder');
+    ladder.innerHTML = '';
+    let balance = account;
+    const dangerThreshold = account - (maxDD * 0.75);
+
+    for (let i = 1; i <= maxLosses; i++) {
+      balance -= riskPerTrade;
+      const isLast    = i === maxLosses;
+      const isDanger  = balance <= dangerThreshold && !isLast;
+      const cell      = document.createElement('div');
+      cell.className  = 'ladder-cell' + (isLast ? ' blown' : isDanger ? ' danger' : '');
+      cell.innerHTML  = `
+        <div class="lc-num">Loss #${i}</div>
+        <div class="lc-val">${fmt(balance, 0)}</div>
+      `;
+      ladder.appendChild(cell);
+    }
+  }
+
+  calculate();
+</script>
+</body>
+</html>
